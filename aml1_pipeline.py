@@ -1,21 +1,19 @@
 
-
 import pandas as pd
+import numpy as np
 
-from sklearn.preprocessing import StandardScaler
-from sklearn.feature_selection import SelectKBest, f_regression
-from sklearn.decomposition import PCA
-from sklearn.linear_model import Ridge
+from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 
-X_t = pd.read_csv('task1/X_train', ',')
-y_t = pd.read_csv('task1/y_train', ',')
+X_t = pd.read_csv('task1/X_train.csv', ',')
+y_t = pd.read_csv('task1/y_train.csv', ',')
 
 pipe = Pipeline([
-                 ('scaler', StandardScaler()),
-                 ('reduce_dim', PCA()),
-                 ('regressor', Ridge())
+                 ('imputer', SimpleImputer(missing_values=np.nan, strategy='mean'))
                  ])
 
-
 pipe = pipe.fit(X_t, y_t)
+
+X_t_filled = pipe.named_steps['imputer'].transform(X_t)
+
+pd.DataFrame(X_t_filled[0:, 1:]).to_csv('task1/output.csv', ',')
