@@ -27,7 +27,14 @@ outlier_detection.fit(X_t[0:, 1:], y_t)
 outlier = outlier_detection.predict(X_t[0:, 1:])
 pd.DataFrame(outlier).to_csv('task1/results/outlier-decisions.csv', ',')
 
-
 X_t = filter(lambda x: (outlier[int(x[0])] > 0), X_t)
-pd.DataFrame(X_t).to_csv('task1/results/inliners.csv', ',')
+pd.DataFrame(X_t).to_csv('task1/results/X_inliners.csv', ',')
+
+y_t = filter(lambda x: (outlier[int(x[0])] > 0), y_t.values)
+pd.DataFrame(y_t).to_csv('task1/results/y_inliners.csv', ',')
+
+
+
+
+
 
