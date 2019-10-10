@@ -8,16 +8,26 @@ from sklearn.neighbors import LocalOutlierFactor
 from sklearn.svm import OneClassSVM
 from sklearn.pipeline import Pipeline
 
+
+from sklearn.feature_selection import VarianceThreshold
+
 X_t = pd.read_csv('task1/X_train.csv', ',')
 y_t = pd.read_csv('task1/y_train.csv', ',')
 
-pipe = Pipeline([
-                 ('imputer', SimpleImputer(missing_values=np.nan, strategy='mean')),
-                 ('outlier_detection', LocalOutlierFactor())
-                 ])
 
-pipe = pipe.fit(X_t, y_t)
+filler = SimpleImputer(missing_values=np.nan, strategy='mean')
+filler.fit(X_t, y_t)
 
-X_t_filled = pipe.transform(X_t)
+X_t = filler.transform(X_t)
+pd.DataFrame(X_t).to_csv('task1/results/filled.csv', ',')
 
-pd.DataFrame(X_t_filled[0:, 1:]).to_csv('task1/output.csv', ',')
+outlier_detection = IsolationForest(behaviour='new')
+outlier_detection.fit(X_t[0:, 1:], y_t)
+
+outlier = outlier_detection.predict(X_t[0:, 1:])
+pd.DataFrame(outlier).to_csv('task1/results/outlier-decisions.csv', ',')
+
+
+X_t = filter(lambda x: (outlier[int(x[0])] > 0), X_t)
+pd.DataFrame(X_t).to_csv('task1/results/inliners.csv', ',')
+
