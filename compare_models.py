@@ -30,7 +30,7 @@ for i in range (1, 5):
         X_t_m = X_t
         poly.fit(X_t_m)
         X_t_m = poly.transform(X_t_m)   #creating olynomial features
-        cv_results = cross_validate(model, X_t_m, y_t, cv=5)
+        cv_results = cross_validate(model, X_t_m, y_t, cv=10)
         print('Score of ' + str(model) + 'of degree ' + str(i) + ': ')
         print(cv_results['test_score'])
         print("Average: " + str(np.average(cv_results['test_score'])))
