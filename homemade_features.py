@@ -1,5 +1,6 @@
 #this script performs feature selection based on covariance
 #results with current tuning scores around 0.49
+#THIS FEATURE SELECTION IS OUTCLASSED BY LIBRARY METHODS
 
 import pandas as pd
 import numpy as np
@@ -97,8 +98,6 @@ print(X_t)
 
 #ElasticNetCV performs automatic hyperparameter search. Lasso models works a little better.
 #we should try different linear models
-#model = linear_model.ElasticNetCV(cv=5, max_iter=4000)
-#model = linear_model.LassoCV(cv=5, max_iter=4000)
 model = linear_model.RidgeCV(cv=5)
 model.fit(X_t, y_t.ravel())
 print(model.score(X_t, y_t))

@@ -35,7 +35,6 @@ pd.DataFrame(X_t).to_csv('task1/results/X_inliners.csv', ',', index=False)
 y_t = filter(lambda x: (outlier[int(x[0])] > 0), y_t.values)
 pd.DataFrame(y_t).to_csv('task1/results/y_inliners.csv', ',', index=False)
 
-
 X_t = pd.read_csv('task1/results/X_inliners.csv', ',')
 y_t = pd.read_csv('task1/results/y_inliners.csv', ',')
 

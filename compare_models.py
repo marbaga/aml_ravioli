@@ -1,6 +1,7 @@
 #RavioliRegress AML 2019
 
 #All the code has to be rewritten properly and optimized
+#THIS SCRIPT HAS BEEN USED TO COMPARE VARIOUS MODELS. IT IS NOW OUTDATED
 
 import warnings
 import pandas as pd
@@ -17,7 +18,6 @@ X_t = pd.read_csv('task1/results/X_normalized.csv', ',').iloc[:, 1:].values #rem
 y_t = pd.read_csv('task1/results/y_inliners.csv', ',').iloc[:, 1:].values #removing indices and casting
 
 # TODO: feature selection
-
 
 # We train each model (different parameters) and compute the cross validation score (with or without standardization
 print("Trying out linear models")
