@@ -39,6 +39,7 @@ print("Standardized samples")
 
 warnings.simplefilter(action='ignore', category=DeprecationWarning)
 
+'''
 #alpha found by RidgeCV
 models = [linear_model.Ridge(tol=0.001, alpha=48)]
 for m in models:
@@ -47,6 +48,7 @@ for m in models:
     print("Average: " + str(np.average(cv_results['test_score'])))
     print("Variance: " + str(np.var(cv_results['test_score'])))
     print()
+'''
 
 print('Preparing for prediction')
 
@@ -70,9 +72,13 @@ print("Predicting...")
 
 m = linear_model.Ridge(tol=0.001, alpha=48)
 m.fit(scaled_X, selected_y)
-print(m.score(scaled_X, selected_y))
+#print(m.score(scaled_X, selected_y))
 predictions = m.predict(X_test)
 
 print("Computing predictions")
 
-print(predictions)
+answer = pd.read_csv('task1/X_test.csv', ',')[['id']]
+answer = pd.concat([answer, pd.DataFrame(data=predictions, columns = ['y'])], axis = 1)
+pd.DataFrame(answer).to_csv('task1/results/to_submit.csv', ',', index=False)
+
+print("Prediction formattes and written to file")
