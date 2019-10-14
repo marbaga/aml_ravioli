@@ -14,11 +14,8 @@ from sklearn.model_selection import cross_validate
 
 #read inliners (not stanndardized yet)
 X = pd.read_csv('task1/results/X_inliners.csv', ',')
-
-#fill nan values
-filler = SimpleImputer(missing_values=np.nan, strategy='median')
-X = filler.fit_transform(X)[:, 1:]
 y = pd.read_csv('task1/results/y_inliners.csv', ',').values[:, 1]
+
 X = pd.DataFrame(X)
 print(X)
 
