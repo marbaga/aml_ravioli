@@ -2,6 +2,7 @@
 import pandas as pd
 import numpy as np
 from sklearn import metrics
+from sklearn.ensemble import RandomForestRegressor
 
 from sklearn.linear_model import LinearRegression, Ridge, ElasticNet
 from sklearn.metrics import make_scorer
@@ -11,7 +12,7 @@ from estimator import InputTransform
 
 
 
-model = InputTransform(LinearRegression(), contamination=0.05)
+model = InputTransform(RandomForestRegressor(n_estimators=50), contamination=0.05)
 
 X_t = pd.read_csv('task1/X_train.csv', ',')
 y_t = pd.read_csv('task1/y_train.csv', ',')
