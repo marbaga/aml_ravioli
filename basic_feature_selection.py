@@ -61,17 +61,6 @@ print(X_test_first.shape)
 # in the medium ones
 good = pd.read_csv('task1/results/best_features.csv', ',').to_numpy().flatten()
 bad = pd.read_csv('task1/results/useless_features.csv', ',').to_numpy().flatten()
-#to be removed
-to_check = []   #list of feature to consider
-
-for i in range(0, 831):
-    if i not in bad:
-        to_check.append(i)
-
-to_check = np.array(to_check)
-X_t = X_t.copy().filter(to_check)
-X_test = X_test.copy().filter(to_check)
-
 
 to_check = []   #list of feature to consider
 
