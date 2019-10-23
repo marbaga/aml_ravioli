@@ -16,7 +16,9 @@ from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.feature_selection import RFE, SelectFromModel
 import sklearn.preprocessing as preprocessing
 from rfr_model import rfr_model
-
+from sklearn.feature_selection import VarianceThreshold
+from sklearn import ensemble
+from sklearn.ensemble import GradientBoostingRegressor
 # It's a collage from previous code, with some new things. The X_test is
 # modified together with X_train, otherwise I didn't know ho to distinguish features
 # in the correlation matrix, that's why you will sometimes find it with apparently no meaning
@@ -36,7 +38,7 @@ X_test = pd.DataFrame(X_test)
 
 # outlier detection
 # use lof
-method = LocalOutlierFactor(n_neighbors=max(50, int(0.1*X_t.shape[1])), contamination=0.2)
+method = LocalOutlierFactor(n_neighbors=max(50, int(0.1*X_t.shape[1])), contamination=0.15)
 outlier = method.fit_predict(X_t)
 target = []
 for i in range(0, len(outlier)):
@@ -46,7 +48,7 @@ X_t = X_t.copy().drop(X_t.index[target], axis=0)
 y_t = y_t.copy().drop(y_t.index[target])
 print("Performed outlier detection")
 
-# features from images, will be merged with the others at the end
+# features from images obtained manually, will be merged with the others at the end
 X_train = X_t
 best = pd.read_csv('task1/results/best_features.csv', ',').to_numpy().flatten()
 X_train = X_train.copy().filter(best)
@@ -59,6 +61,17 @@ print(X_test_first.shape)
 # in the medium ones
 good = pd.read_csv('task1/results/best_features.csv', ',').to_numpy().flatten()
 bad = pd.read_csv('task1/results/useless_features.csv', ',').to_numpy().flatten()
+#to be removed
+to_check = []   #list of feature to consider
+
+for i in range(0, 831):
+    if i not in bad:
+        to_check.append(i)
+
+to_check = np.array(to_check)
+X_t = X_t.copy().filter(to_check)
+X_test = X_test.copy().filter(to_check)
+
 
 to_check = []   #list of feature to consider
 
@@ -83,7 +96,7 @@ cor = pd.DataFrame(X).corr()
 columns = np.full((cor.shape[0],), True, dtype=bool)
 for i in range(cor.shape[0]):
     for j in range(i+1, cor.shape[0]):
-        if abs(cor.iloc[i,j]) > 0.85 or abs(cor.iloc[j,cor.shape[0]-1]) < 0.03:
+        if abs(cor.iloc[i,j]) > 0.9 or abs(cor.iloc[j,cor.shape[0]-1]) < 0.03:
             if columns[j]:
                 columns[j] = False
 data = X.iloc[:, columns]
@@ -93,10 +106,17 @@ X_t = data.iloc[:, :data.shape[1]-1]
 X_test = test_data.iloc[:, :data.shape[1]-1]
 print('Shape of the cleaned matrix after correlation selection: ' + str(X_t.shape))
 print('Shape of the test cleaned matrix after correlation selection: ' + str(X_t.shape))
-
 # end of feature selection from correlation matrix
 
-X_t = pd.DataFrame(X_t) # not sure it's necessary anymore, I don't want to check
+
+# RFE feature selection with no cross validation
+model = ensemble.GradientBoostingRegressor(learning_rate=0.01, max_depth=4, n_estimators=2500, subsample=0.8, min_samples_split=2, min_samples_leaf=1, max_features='sqrt',random_state=10)
+selector = RFE(estimator=model, n_features_to_select=100, step=10)
+selector = selector.fit(X_t, y_t)
+support = selector.get_support()
+X_t = X_t.iloc[:, support]
+X_test = X_test.iloc[:, support]
+
 
 # merging features from images and from algorithms, for both train and test
 print('Size of X_train: ' + str(X_train.shape))
@@ -109,6 +129,8 @@ print('Size of X_test: ' + str(X_test.shape))
 X_test = pd.concat([X_test_first.reset_index(drop=True), X_test.reset_index(drop=True)], axis=1)
 print('Size of the merged table: ' + str(X_test.shape))
 
+pd.DataFrame(X_t).to_csv('task1/results/merged_table.csv', ',', index=True)
+pd.DataFrame(y_t).to_csv('task1/results/merged_table_y.csv', ',', index=True)
 
 # normalizing
 scaler = preprocessing.StandardScaler()
@@ -118,11 +140,12 @@ X_t = pd.DataFrame(scaler.fit_transform(X_t))
 # POSSIBLE MODELS
 #ElasticNetCV performs automatic hyperparameter search. Lasso models works a little better.
 #we should try different linear models
-model = linear_model.ElasticNetCV(l1_ratio=0.5, eps=1e-3, n_alphas=10, cv=10, selection='random')
+#model = linear_model.ElasticNetCV(l1_ratio=0.5, eps=1e-3, n_alphas=10, cv=10, selection='random')
 #model = linear_model.LassoCV(cv=5)
 #model = linear_model.RidgeCV(cv=10)
 #model = RandomForestRegressor(max_depth=2, random_state=0, n_estimators=100)
 #model = rfr_model(X_t, y_t)
+model = ensemble.GradientBoostingRegressor(learning_rate=0.01, max_depth=4, n_estimators=2500, subsample=0.8, min_samples_split=2, min_samples_leaf=1, max_features='sqrt',random_state=10)
 
 model.fit(X_t, y_t.ravel())
 print(model.score(X_t, y_t))
@@ -157,6 +180,6 @@ print("Computing predictions")
 
 answer = pd.read_csv('task1/X_test.csv', ',')[['id']]
 answer = pd.concat([answer, pd.DataFrame(data=predictions, columns=['y'])], axis=1)
-pd.DataFrame(answer).to_csv('task1/results/elastic_net.csv', ',', index=False)
+pd.DataFrame(answer).to_csv('task1/results/gradient_boosting_regressor.csv', ',', index=False)
 
 print("Prediction formattes and written to file")
