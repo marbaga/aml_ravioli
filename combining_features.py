@@ -65,7 +65,7 @@ X_t = X_t.copy().filter(to_check)
 # feature selection from correlation matrix
 # currently doesn't work for final prediction, because I don't know how to select features for X_test
 # In basic_feature_selection this problem is solved
-'''
+
 #insert y column
 X = X_t
 y = y_t
@@ -83,7 +83,7 @@ data = X.iloc[:, columns]
 X_t = data.iloc[:, :data.shape[1]-1]
 print('Shape of the cleaned matrix after correlation selection: ' + str(X_t.shape))
 # end of feature selection from correlation matrix
-'''
+
 
 X_t = pd.DataFrame(X_t)
 
@@ -124,8 +124,8 @@ X_t = pd.DataFrame(scaler.fit_transform(X_t))
 #model = linear_model.ElasticNetCV(l1_ratio=0.5, eps=1e-3, n_alphas=10, cv=10, selection='random')
 #model = linear_model.LassoCV(cv=5)
 #model = linear_model.RidgeCV(cv=10)
-#model = RandomForestRegressor(max_depth=2, random_state=0, n_estimators=100)
-model = rfr_model(X_t, y_t)
+model = RandomForestRegressor(max_depth=6, random_state=False, n_estimators=50)
+#model = rfr_model(X_t, y_t)
 
 model.fit(X_t, y_t.ravel())
 print(model.score(X_t, y_t))
@@ -142,7 +142,7 @@ print("Average: " + str(np.average(cv_results['test_score'])))
 print('Preparing for prediction')
 
 X_test = pd.read_csv('task1/X_test.csv', ',').iloc[:, 1:]
-#print(X_test)
+print(X_test)
 # fill with median
 filler = SimpleImputer(missing_values=np.nan, strategy='median')
 X_test = filler.fit_transform(X_test)
@@ -171,6 +171,6 @@ print("Computing predictions")
 
 answer = pd.read_csv('task1/X_test.csv', ',')[['id']]
 answer = pd.concat([answer, pd.DataFrame(data=predictions, columns=['y'])], axis=1)
-pd.DataFrame(answer).to_csv('task1/results/elastic_net.csv', ',', index=False)
+pd.DataFrame(answer).to_csv('task1/results/random forest_2.csv', ',', index=False)
 
 print("Prediction formattes and written to file")

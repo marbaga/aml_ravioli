@@ -11,8 +11,8 @@ from estimator import InputTransform
 
 
 
-#model = InputTransform(ElasticNetCV(l1_ratio=0.5, eps=1e-3, n_alphas=10, cv=10, selection='random'), contamination=0.2)
-model = InputTransform(RandomForestRegressor(n_estimators=50), contamination=0.1)
+model = InputTransform(ElasticNetCV(l1_ratio=0.5, eps=1e-3, n_alphas=10, cv=10, selection='random'), contamination=0.2)
+#model = InputTransform(RandomForestRegressor(n_estimators=50), contamination=0.1)
 
 X_t = pd.read_csv('task1/X_train.csv', ',')
 y_t = pd.read_csv('task1/y_train.csv', ',')
