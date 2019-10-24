@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import xgboost as xgb
+from scipy.linalg import LinAlgWarning
 from sklearn.feature_selection import RFECV
 from sklearn.feature_selection import RFE
 from sklearn.linear_model import Ridge
@@ -29,6 +30,7 @@ from xbregressor_tuning import xbr_model
 
 #suppress FutureWarnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.simplefilter(action='ignore', category=LinAlgWarning)
 
 X_t = pd.read_csv('task1/X_train.csv', ',').iloc[:, 1:]
 y_t = pd.read_csv('task1/y_train.csv', ',').iloc[:, 1]
@@ -56,9 +58,10 @@ X_t = X_t.copy().drop(X_t.index[target], axis=0)
 y_t = y_t.copy().drop(y_t.index[target])
 print("Performed outlier detection")
 
+
 # features from images obtained manually, will be merged with the others at the end
 X_train = X_t
-best = pd.read_csv('task1/results/best_features.csv', ',').to_numpy().flatten()
+best = pd.read_csv('task1/results/best_features_2.csv', ',').to_numpy().flatten()
 X_train = X_train.copy().filter(best)
 X_test_first = X_test.copy().filter(best)
 
@@ -67,13 +70,13 @@ print(X_test_first.shape)
 
 # manually obtained features (good and bad), to remove so that now the feature selection is concentrated
 # in the medium ones
-good = pd.read_csv('task1/results/best_features.csv', ',').to_numpy().flatten()
+good = pd.read_csv('task1/results/best_features_2.csv', ',').to_numpy().flatten()
 bad = pd.read_csv('task1/results/useless_features.csv', ',').to_numpy().flatten()
 
 to_check = []   #list of feature to consider
 
 for i in range(0, 831):
-    if i not in good and i not in bad:
+    if i not in bad:
         to_check.append(i)
 
 to_check = np.array(to_check)
@@ -105,25 +108,58 @@ print('Shape of the cleaned matrix after correlation selection: ' + str(X_t.shap
 print('Shape of the test cleaned matrix after correlation selection: ' + str(X_t.shape))
 # end of feature selection from correlation matrix
 
-# RFECV with ridge regression for feature selection
-model = GradientBoostingRegressor(learning_rate=0.01, max_depth=4, n_estimators=2500, subsample=0.8, min_samples_split=2, min_samples_leaf=1, max_features='sqrt',random_state=10)
-selector = RFECV(estimator=model, step=10, min_features_to_select=10, cv=10)
-selector = selector.fit(X_t, y_t)
-support = selector.get_support()
-
-X_t = X_t.iloc[:, support]
-X_test = X_test.iloc[:, support]
-
 '''
+# RFECV
+#model = Ridge()
+model = GradientBoostingRegressor(learning_rate=0.01, max_depth=4, n_estimators=2500, subsample=0.8, min_samples_split=2, min_samples_leaf=1, max_features='sqrt',random_state=10)
+selector = RFECV(estimator=model, step=10, min_features_to_select=110, cv=10)
+selector = selector.fit(X_t, y_t)
+#support = selector.get_support(indices=True)
+
+# Trying to select a good number of features to approximate 200 total features
+v = []
+for i in range(0,8):
+    v.append(0)
+i=0
+while i < selector.ranking_.size:
+    for j in range(0,8):
+        if selector.ranking_[i] == j:
+            v[j] = v[j]+1
+    i = i+1
+print(v)
+num_features = 0
+n_to_stop = 0
+i = 0
+while num_features < 95:
+    num_features = num_features + v[i]
+    n_to_stop = n_to_stop+1
+    i = i+1
+
+# collects the features with good enough ranking
+useful_features = []
+i=0
+while i < selector.ranking_.size:
+    if selector.ranking_[i] < n_to_stop:
+        useful_features.append(i)
+    i = i+1
+
+useful_features = np.array(useful_features)
+
+X_t = X_t.iloc[:, useful_features]
+X_test = X_test.iloc[:, useful_features]
+
+#end feature selection with rfecv
+'''
+
+
 # RFE feature selection with no cross validation
 model = GradientBoostingRegressor(learning_rate=0.01, max_depth=4, n_estimators=2500, subsample=0.8, min_samples_split=2, min_samples_leaf=1, max_features='sqrt',random_state=10)
-#model = xbr_model(X_t, y_t)
-selector = RFE(estimator=model, n_features_to_select=100, step=10)
+selector = RFE(estimator=model, n_features_to_select=122, step=10)
 selector = selector.fit(X_t, y_t)
 support = selector.get_support()
 X_t = X_t.iloc[:, support]
 X_test = X_test.iloc[:, support]
-'''
+
 
 # merging features from images and from algorithms, for both train and test
 print('Size of X_train: ' + str(X_train.shape))
@@ -187,6 +223,6 @@ print("Computing predictions")
 
 answer = pd.read_csv('task1/X_test.csv', ',')[['id']]
 answer = pd.concat([answer, pd.DataFrame(data=predictions, columns=['y'])], axis=1)
-pd.DataFrame(answer).to_csv('task1/results/gradient_boosting_regressor.csv', ',', index=False)
+pd.DataFrame(answer).to_csv('task1/results/RFE_200.csv', ',', index=False)
 
 print("Prediction formattes and written to file")
