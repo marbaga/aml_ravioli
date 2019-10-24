@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import xgboost as xgb
 from sklearn.feature_selection import RFECV
 from sklearn.feature_selection import RFE
 from sklearn.linear_model import Ridge
@@ -11,6 +12,7 @@ from sklearn import linear_model
 from sklearn.model_selection import cross_validate, KFold, RepeatedKFold, LeaveOneOut, ShuffleSplit
 from sklearn.preprocessing import StandardScaler
 import warnings
+from xgboost import XGBRegressor
 from estimator import InputTransform
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.feature_selection import RFE, SelectFromModel
@@ -19,9 +21,14 @@ from rfr_model import rfr_model
 from sklearn.feature_selection import VarianceThreshold
 from sklearn import ensemble
 from sklearn.ensemble import GradientBoostingRegressor
+from xbregressor_tuning import xbr_model
+
 # It's a collage from previous code, with some new things. The X_test is
 # modified together with X_train, otherwise I didn't know ho to distinguish features
 # in the correlation matrix, that's why you will sometimes find it with apparently no meaning
+
+#suppress FutureWarnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 X_t = pd.read_csv('task1/X_train.csv', ',').iloc[:, 1:]
 y_t = pd.read_csv('task1/y_train.csv', ',').iloc[:, 1]
@@ -33,7 +40,8 @@ filler = SimpleImputer(missing_values=np.nan, strategy='median')
 X_t = filler.fit_transform(X_t, y_t)
 X_t = pd.DataFrame(X_t)
 print("Filled data with median")
-X_test = np.asarray(X_test)
+#X_test = np.asarray(X_test)
+X_test = filler.transform(X_test)
 X_test = pd.DataFrame(X_test)
 
 # outlier detection
@@ -97,15 +105,25 @@ print('Shape of the cleaned matrix after correlation selection: ' + str(X_t.shap
 print('Shape of the test cleaned matrix after correlation selection: ' + str(X_t.shape))
 # end of feature selection from correlation matrix
 
+# RFECV with ridge regression for feature selection
+model = GradientBoostingRegressor(learning_rate=0.01, max_depth=4, n_estimators=2500, subsample=0.8, min_samples_split=2, min_samples_leaf=1, max_features='sqrt',random_state=10)
+selector = RFECV(estimator=model, step=10, min_features_to_select=10, cv=10)
+selector = selector.fit(X_t, y_t)
+support = selector.get_support()
 
+X_t = X_t.iloc[:, support]
+X_test = X_test.iloc[:, support]
+
+'''
 # RFE feature selection with no cross validation
-model = ensemble.GradientBoostingRegressor(learning_rate=0.01, max_depth=4, n_estimators=2500, subsample=0.8, min_samples_split=2, min_samples_leaf=1, max_features='sqrt',random_state=10)
+model = GradientBoostingRegressor(learning_rate=0.01, max_depth=4, n_estimators=2500, subsample=0.8, min_samples_split=2, min_samples_leaf=1, max_features='sqrt',random_state=10)
+#model = xbr_model(X_t, y_t)
 selector = RFE(estimator=model, n_features_to_select=100, step=10)
 selector = selector.fit(X_t, y_t)
 support = selector.get_support()
 X_t = X_t.iloc[:, support]
 X_test = X_test.iloc[:, support]
-
+'''
 
 # merging features from images and from algorithms, for both train and test
 print('Size of X_train: ' + str(X_train.shape))
@@ -134,8 +152,9 @@ X_t = pd.DataFrame(scaler.fit_transform(X_t))
 #model = linear_model.RidgeCV(cv=10)
 #model = RandomForestRegressor(max_depth=2, random_state=0, n_estimators=100)
 #model = rfr_model(X_t, y_t)
-model = ensemble.GradientBoostingRegressor(learning_rate=0.01, max_depth=4, n_estimators=2500, subsample=0.8, min_samples_split=2, min_samples_leaf=1, max_features='sqrt',random_state=10)
-
+model = GradientBoostingRegressor(learning_rate=0.01, max_depth=4, n_estimators=2500, subsample=0.8, min_samples_split=2, min_samples_leaf=1, max_features='sqrt',random_state=10)
+#model = xbr_model(X_t, y_t)
+#model = XGBRegressor(learning_rate=0.1, max_depth=3, subsample=0.7, n_estimators=100, colsample_bytree=0.4, alpha=0.1)
 model.fit(X_t, y_t.ravel())
 print(model.score(X_t, y_t))
 
@@ -149,15 +168,14 @@ print('Preparing for prediction')
 
 #print(X_test)
 # fill with median
-filler = SimpleImputer(missing_values=np.nan, strategy='median')    #are there outliers? I have used mean for the submission
-X_test = filler.fit_transform(X_test)
+#filler = SimpleImputer(missing_values=np.nan, strategy='median')    #are there outliers? I have used mean for the submission
+#X_test = filler.transform(X_t)
 X_test = pd.DataFrame(X_test)
 #print(X_test)
 print("Filled test with median")
 #print(X_test)
 print("Performed feature selection. " + str(X_test.shape) + ' is the final shape for the test matrix.')
-scaler = StandardScaler()
-X_test = pd.DataFrame(scaler.fit_transform(X_test))
+X_test = pd.DataFrame(scaler.transform(X_test))
 #print(X_test)
 print("Standardized test samples")
 
