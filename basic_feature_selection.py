@@ -23,7 +23,7 @@ from sklearn.feature_selection import VarianceThreshold
 from sklearn import ensemble
 from sklearn.ensemble import GradientBoostingRegressor
 from xbregressor_tuning import xbr_model
-
+from matplotlib import pyplot as plt
 # It's a collage from previous code, with some new things. The X_test is
 # modified together with X_train, otherwise I didn't know ho to distinguish features
 # in the correlation matrix, that's why you will sometimes find it with apparently no meaning
@@ -108,13 +108,13 @@ print('Shape of the cleaned matrix after correlation selection: ' + str(X_t.shap
 print('Shape of the test cleaned matrix after correlation selection: ' + str(X_t.shape))
 # end of feature selection from correlation matrix
 
-'''
-# RFECV
+'''# RFECV
 #model = Ridge()
 model = GradientBoostingRegressor(learning_rate=0.01, max_depth=4, n_estimators=2500, subsample=0.8, min_samples_split=2, min_samples_leaf=1, max_features='sqrt',random_state=10)
-selector = RFECV(estimator=model, step=10, min_features_to_select=110, cv=10)
+selector = RFECV(estimator=model, step=10, min_features_to_select=40, cv=10)
 selector = selector.fit(X_t, y_t)
-#support = selector.get_support(indices=True)
+support = selector.get_support()
+
 
 # Trying to select a good number of features to approximate 200 total features
 v = []
@@ -145,22 +145,29 @@ while i < selector.ranking_.size:
 
 useful_features = np.array(useful_features)
 
-X_t = X_t.iloc[:, useful_features]
-X_test = X_test.iloc[:, useful_features]
+X_t = X_t.iloc[:, support]
+X_test = X_test.iloc[:, support]
 
+print(X_t.shape)
+print(X_test.shape)
 #end feature selection with rfecv
 '''
 
-
 # RFE feature selection with no cross validation
 model = GradientBoostingRegressor(learning_rate=0.01, max_depth=4, n_estimators=2500, subsample=0.8, min_samples_split=2, min_samples_leaf=1, max_features='sqrt',random_state=10)
-selector = RFE(estimator=model, n_features_to_select=122, step=10)
+selector = RFE(estimator=model, n_features_to_select=61, step=10)
 selector = selector.fit(X_t, y_t)
 support = selector.get_support()
 X_t = X_t.iloc[:, support]
 X_test = X_test.iloc[:, support]
+'''
+for i in range(0,X_t.shape[1]):
+    plt.scatter(X_t.iloc[:,i], y_t)
+    plt.show()'''
 
-
+print(X_t.shape)
+print(X_test.shape)
+'''
 # merging features from images and from algorithms, for both train and test
 print('Size of X_train: ' + str(X_train.shape))
 print('Size of X_t: ' + str(X_t.shape))
@@ -174,6 +181,8 @@ print('Size of the merged table: ' + str(X_test.shape))
 
 pd.DataFrame(X_t).to_csv('task1/results/merged_table.csv', ',', index=True)
 pd.DataFrame(y_t).to_csv('task1/results/merged_table_y.csv', ',', index=True)
+'''
+
 
 # normalizing
 scaler = preprocessing.StandardScaler()
@@ -188,7 +197,7 @@ X_t = pd.DataFrame(scaler.fit_transform(X_t))
 #model = linear_model.RidgeCV(cv=10)
 #model = RandomForestRegressor(max_depth=2, random_state=0, n_estimators=100)
 #model = rfr_model(X_t, y_t)
-model = GradientBoostingRegressor(learning_rate=0.01, max_depth=4, n_estimators=2500, subsample=0.8, min_samples_split=2, min_samples_leaf=1, max_features='sqrt',random_state=10)
+#model = GradientBoostingRegressor(learning_rate=0.01, max_depth=5, n_estimators=2500, subsample=0.8, min_samples_split=2, min_samples_leaf=1, max_features='sqrt',random_state=10)
 #model = xbr_model(X_t, y_t)
 #model = XGBRegressor(learning_rate=0.1, max_depth=3, subsample=0.7, n_estimators=100, colsample_bytree=0.4, alpha=0.1)
 model.fit(X_t, y_t.ravel())
