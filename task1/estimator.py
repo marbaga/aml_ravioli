@@ -20,8 +20,8 @@ class InputTransform(BaseEstimator):
         self.model = model
         self.contamination = contamination
 
-        self.important_features = pd.read_csv('task1/best_features.csv', ',').to_numpy().flatten()
-        self.useless_features = pd.read_csv('task1/useless_features.csv', ',').to_numpy().flatten()
+        self.important_features = pd.read_csv('task1/results/best_features.csv', ',').to_numpy().flatten()
+        self.useless_features = pd.read_csv('task1/results/useless_features.csv', ',').to_numpy().flatten()
 
         self.included_columns = []
         self.features_to_check = []

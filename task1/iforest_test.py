@@ -9,7 +9,7 @@ from sklearn.feature_selection import VarianceThreshold
 from sklearn import linear_model
 from sklearn.model_selection import cross_validate, KFold, RepeatedKFold, LeaveOneOut, ShuffleSplit
 from sklearn.preprocessing import StandardScaler
-from sklearn import feature_selection
+
 
 def select_features_by_corr(max_corr, min_corr, X, y):
     X = pd.DataFrame(X)
@@ -84,7 +84,6 @@ result, n = isolation_forest(X_t, y_t)
 for mult in [2, 1, 0.5]:
     # compute X removing mult*n outliers
     ind = np.argpartition(result, int(-1 * mult * n))[int(-1 * mult * n):]
-    print("hey" + str(len(ind)))
     ind = np.sort(ind)
 
     inliers.append(X_t.copy().drop(X_t.index[ind], axis = 0))

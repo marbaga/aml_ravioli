@@ -11,6 +11,7 @@ from sklearn import feature_selection
 from sklearn import metrics
 from sklearn import ensemble
 from sklearn.ensemble import ExtraTreesRegressor, RandomForestRegressor, ExtraTreesClassifier
+from scipy.stats import shapiro
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.model_selection import GridSearchCV
 import xgboost as xgb
@@ -97,9 +98,12 @@ to_keep = indices[:220]
 X_train = X_train.filter(to_keep)
 print(X_train.shape)
 
-#for i in range(0, X_train.shape[1]):
+
+for i in range(0, X_train.shape[1]):
+    print(shapiro(X_train.iloc[:, i]))
     #plt.scatter(X_train.iloc[:, i], y_train)
-    #plt.show()
+    plt.hist(X_train.iloc[:, i], bins=100)
+    plt.show()
 
 print("Performed feature selection. " + str(X_train.shape) + ' is the final shape for the training matrix.')
 
