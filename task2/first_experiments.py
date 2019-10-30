@@ -55,7 +55,6 @@ from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 import imblearn
 from sklearn.decomposition import PCA
 from xgboost import XGBClassifier
-import seaborn as sns
 
 
 class CustomEstimator (BaseEstimator):
@@ -81,6 +80,15 @@ class CustomEstimator (BaseEstimator):
             sns.boxplot(X_t[np.where(y_t == 2), i], color='pink', ax=ax3)
             plt.show()
             '''
+
+        self.feature_selector = PCA(n_components = 500)
+        self.feature_selector.fit(X_t)
+        X_t = self.feature_selector.transform(X_t)
+
+        #self.scaler = StandardScaler()
+        #self.scaler.fit(X_t)
+        #X_t = self.scaler.transform(X_t)
+
         print('Final training matrix shape is ' + str(X_t.shape))
         self.model.fit(X_t, y_t)
 
@@ -89,9 +97,13 @@ class CustomEstimator (BaseEstimator):
     def predict(self, X):
 
         X_t = X.copy()
-        predictions = self.model.predict(X_t)
 
-        return predictions
+        X_t = self.feature_selector.transform(X_t)
+        #X_t = self.scaler.transform(X_t)
+
+        y_t = self.model.predict(X_t)
+
+        return y_t
 
 #This bit performs cross validation. Every transformation on data needs to be carried out inside the custom estimator class. The following lines should not be touched
 X_t = pd.read_csv('X_train.csv', ',').iloc[:, 1:].to_numpy()
