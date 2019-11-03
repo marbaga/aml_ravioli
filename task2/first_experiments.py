@@ -2,29 +2,27 @@
 So far I experimented with different classifiers and differend samplers.
 Those delivering better results seem to be logistic regression, NuSVC, GradientBoostingClassifier, XGBClassifier and MLPClassifier.
 Random undersampling seems to obtain better results.
-Best score is around 0.68 (NuSVC, RandomUnderSampler
+Best score is around 0.69 (SVC, RandomUnderSampler)
+Shallow neural networks with dropout and hidden layer achieve similar performance.
 
 Note that all models have a very long training time on the whole subset.
-Please check if cross-validation is performed correctly (all processes should be inside methods in CustomEstimator.
 All features have variance > 0.
 All features I have seen seem to follow a Gaussian-ish distribution.
 By uncommenting the lines in method fit you can visualize boxplots for the 3 classes.
 
 Ideas:
-- perform outlier detection (with a lot of care)
-- perform feature selection basing of correlation between features
 - eliminate features for which the boxplots of all classes are very similar
 - try more fancy feature selection methods
-- try feature engineering if we are given more informations
 - try deeper neural network (running on a GPU through Google Colab)
 - stack best performing classifiers
+- try again with other sampling techniques
 - following Kaggle Kernels step by steps
 - finally, tune hyperparameters
 
+
+- perform outlier detection (with a lot of care) -> apparently not good
+- perform feature selection basing of correlation between features -> PCA does not have major effects
 '''
-
-
-
 
 import pandas as pd
 import numpy as np
@@ -40,7 +38,7 @@ from sklearn.feature_selection import VarianceThreshold, RFE
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn import ensemble
 from sklearn.base import BaseEstimator
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, SGDClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn import svm
@@ -55,8 +53,18 @@ from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 import imblearn
 from sklearn.decomposition import PCA
 from xgboost import XGBClassifier
-
-
+import seaborn as sns
+import tensorflow as tf
+from tensorflow import keras
+from sklearn.preprocessing import LabelEncoder
+from keras.utils import np_utils
+from keras.models import Sequential
+from keras.layers import Dropout
+from keras.layers import Dense, Conv2D, MaxPool2D, Flatten, Conv1D, MaxPool1D
+from keras.wrappers.scikit_learn import KerasClassifier
+from sklearn.metrics import balanced_accuracy_score
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neural_network import MLPClassifier
 class CustomEstimator (BaseEstimator):
 
     def __init__(self, sampler,
@@ -65,12 +73,17 @@ class CustomEstimator (BaseEstimator):
         self.model = model
         self.indices = []
         self.sampler = sampler
+        self.scaler = StandardScaler()
 
     def fit(self, X, y):
 
         X_t = X.copy()
         y_t = y.copy()
         X_t, y_t = self.sampler.fit_sample(X_t, y_t)
+
+        #self.feature_selector = PCA(n_components=500)
+        #self.feature_selector.fit(X_t)
+        X_t = self.feature_selector.transform(X_t)
 
         '''
         for i in range(0, X_t.shape[1]):
@@ -80,16 +93,8 @@ class CustomEstimator (BaseEstimator):
             sns.boxplot(X_t[np.where(y_t == 2), i], color='pink', ax=ax3)
             plt.show()
             '''
-
-        self.feature_selector = PCA(n_components = 500)
-        self.feature_selector.fit(X_t)
-        X_t = self.feature_selector.transform(X_t)
-
-        #self.scaler = StandardScaler()
-        #self.scaler.fit(X_t)
-        #X_t = self.scaler.transform(X_t)
-
         print('Final training matrix shape is ' + str(X_t.shape))
+        X_t = self.scaler.fit_transform(X_t)
         self.model.fit(X_t, y_t)
 
         return self
@@ -97,19 +102,41 @@ class CustomEstimator (BaseEstimator):
     def predict(self, X):
 
         X_t = X.copy()
+        #X_t = self.feature_selector.transform(X_t)
+        X_t = self.scaler.transform(X_t)
+        predictions = self.model.predict(X_t)
 
-        X_t = self.feature_selector.transform(X_t)
-        #X_t = self.scaler.transform(X_t)
+        return predictions
 
-        y_t = self.model.predict(X_t)
-
-        return y_t
+def baseline_model():
+    model = Sequential()
+    model.add(Dense(700, input_dim=1000, activation='relu'))
+    model.add(Dense(400, activation='relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(3, activation='softmax'))
+    model.compile(loss='categorical_crossentropy', optimizer='adam')
+    print(model.summary())
+    return model
 
 #This bit performs cross validation. Every transformation on data needs to be carried out inside the custom estimator class. The following lines should not be touched
 X_t = pd.read_csv('X_train.csv', ',').iloc[:, 1:].to_numpy()
 y_t = pd.read_csv('y_train.csv', ',').iloc[:, 1].to_numpy()
 X_test = pd.read_csv('X_test.csv', ',').iloc[:, 1:].to_numpy()
 
+model = CustomEstimator(sampler=imblearn.under_sampling.RandomUnderSampler(), model=SVC(kernel='rbf', gamma='scale', shrinking=False))#model= KerasClassifier(build_fn=baseline_model, epochs=64, batch_size=256, verbose=1))#
+cv_results = cross_validate(model, X_t, y_t, scoring='balanced_accuracy', n_jobs=-1, cv=10, verbose=True)
+print('Score of ' + str(model) + ': ')
+print(cv_results['test_score'])
+print("Average: " + str(np.average(cv_results['test_score'])))
+
+model.fit(X_t, y_t)
+pred = model.predict(X_test)
+answer = pd.read_csv('X_test.csv', ',')[['id']]
+answer = pd.concat([answer, pd.DataFrame(data=pred, columns=['y'])], axis=1)
+pd.DataFrame(answer).to_csv('result.csv', ',', index=False)
+
+
+#Collection of decent ideas
 classifiers = [
     LogisticRegression(),
     NuSVC(probability=True),
@@ -123,10 +150,3 @@ samplers = [imblearn.under_sampling.TomekLinks(ratio='majority', n_jobs=-1),
             imblearn.over_sampling.RandomOverSampler(),
             imblearn.over_sampling.SMOTE(ratio='minority', n_jobs=-1),
             imblearn.under_sampling.RandomUnderSampler()]
-
-for clf in classifiers:
-    model = CustomEstimator(sampler=imblearn.under_sampling.RandomUnderSampler(), model=clf)
-    cv_results = cross_validate(model, X_t, y_t, scoring='balanced_accuracy', n_jobs=-1, cv=10, verbose=True)
-    print('Score of ' + str(model) + ': ')
-    print(cv_results['test_score'])
-    print("Average: " + str(np.average(cv_results['test_score'])))
