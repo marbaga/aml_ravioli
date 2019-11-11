@@ -26,50 +26,28 @@ Ideas:
 
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-import xgboost as xgb
-from sklearn.impute import SimpleImputer
-from sklearn.neighbors import LocalOutlierFactor
-from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, GradientBoostingClassifier
-from sklearn.model_selection import cross_validate
-from scipy.stats import shapiro, boxcox
-from sklearn.feature_selection import VarianceThreshold, RFE
-from sklearn.pipeline import Pipeline, make_pipeline
-from sklearn import ensemble
-from sklearn.base import BaseEstimator
-from sklearn.linear_model import LogisticRegression, SGDClassifier
-from sklearn.neural_network import MLPClassifier
-from sklearn.gaussian_process import GaussianProcessClassifier
-from sklearn import svm
-from sklearn.metrics import accuracy_score, log_loss
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.svm import SVC, LinearSVC, NuSVC
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier
-from sklearn.naive_bayes import GaussianNB
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
-import imblearn
+from keras.callbacks import EarlyStopping
+from keras.wrappers.scikit_learn import KerasClassifier
 from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import cross_validate
+from sklearn.base import BaseEstimator
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC, NuSVC
+from sklearn.ensemble import GradientBoostingClassifier, VotingClassifier
+import imblearn
 from xgboost import XGBClassifier
-import seaborn as sns
-import tensorflow as tf
-from tensorflow import keras
-from sklearn.preprocessing import LabelEncoder
-from keras.utils import np_utils
 from keras.models import Sequential
 from keras.layers import Dropout
-from keras.layers import Dense, Conv2D, MaxPool2D, Flatten, Conv1D, MaxPool1D
-from keras.wrappers.scikit_learn import KerasClassifier
-from sklearn.metrics import balanced_accuracy_score
-from sklearn.naive_bayes import GaussianNB
+from keras.layers import Dense
 from sklearn.neural_network import MLPClassifier
 class CustomEstimator (BaseEstimator):
 
     def __init__(self, sampler,
-                 model
+                 model, early_stop=False
                  ):
+
+        self.early_stop = early_stop
         self.model = model
         self.indices = []
         self.sampler = sampler
@@ -83,7 +61,7 @@ class CustomEstimator (BaseEstimator):
 
         #self.feature_selector = PCA(n_components=500)
         #self.feature_selector.fit(X_t)
-        X_t = self.feature_selector.transform(X_t)
+        #X_t = self.feature_selector.transform(X_t)
 
         '''
         for i in range(0, X_t.shape[1]):
@@ -94,8 +72,20 @@ class CustomEstimator (BaseEstimator):
             plt.show()
             '''
         print('Final training matrix shape is ' + str(X_t.shape))
+
         X_t = self.scaler.fit_transform(X_t)
-        self.model.fit(X_t, y_t)
+
+        if self.early_stop:
+            early_stopping = EarlyStopping(
+                monitor='loss',
+                verbose=1,
+                patience=15,
+                mode='min',
+                baseline=0.04
+            )
+            self.model.fit(X_t, y_t, callbacks = [early_stopping])
+        else:
+            self.model.fit(X_t, y_t)
 
         return self
 
@@ -118,22 +108,38 @@ def baseline_model():
     print(model.summary())
     return model
 
+def build_keras_classifier():
+    return KerasClassifier(build_fn=baseline_model, epochs=32, batch_size=256)
+
+def build_svc_classifier():
+    return SVC(kernel='rbf', gamma='scale', shrinking=False)
+
 #This bit performs cross validation. Every transformation on data needs to be carried out inside the custom estimator class. The following lines should not be touched
 X_t = pd.read_csv('X_train.csv', ',').iloc[:, 1:].to_numpy()
 y_t = pd.read_csv('y_train.csv', ',').iloc[:, 1].to_numpy()
 X_test = pd.read_csv('X_test.csv', ',').iloc[:, 1:].to_numpy()
 
-model = CustomEstimator(sampler=imblearn.under_sampling.RandomUnderSampler(), model=SVC(kernel='rbf', gamma='scale', shrinking=False))#model= KerasClassifier(build_fn=baseline_model, epochs=64, batch_size=256, verbose=1))#
+voters = []
+for i in range(1, 4):
+    voters.append(('nn'+ str(i), CustomEstimator(sampler=imblearn.under_sampling.RandomUnderSampler(), model=build_keras_classifier(), early_stop=True)))
+
+for i in range(1, 4):
+    voters.append(('svc'+ str(i), CustomEstimator(sampler=imblearn.under_sampling.RandomUnderSampler(), model=build_svc_classifier())))
+
+
+
+model = VotingClassifier(voters)
+
 cv_results = cross_validate(model, X_t, y_t, scoring='balanced_accuracy', n_jobs=-1, cv=10, verbose=True)
 print('Score of ' + str(model) + ': ')
 print(cv_results['test_score'])
 print("Average: " + str(np.average(cv_results['test_score'])))
 
-model.fit(X_t, y_t)
-pred = model.predict(X_test)
-answer = pd.read_csv('X_test.csv', ',')[['id']]
-answer = pd.concat([answer, pd.DataFrame(data=pred, columns=['y'])], axis=1)
-pd.DataFrame(answer).to_csv('result.csv', ',', index=False)
+#model.fit(X_t, y_t)
+#pred = model.predict(X_test)
+#answer = pd.read_csv('X_test.csv', ',')[['id']]
+#answer = pd.concat([answer, pd.DataFrame(data=pred, columns=['y'])], axis=1)
+#pd.DataFrame(answer).to_csv('result.csv', ',', index=False)
 
 
 #Collection of decent ideas
