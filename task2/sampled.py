@@ -1,26 +1,5 @@
 '''
-So far I experimented with different classifiers and differend samplers.
-Those delivering better results seem to be logistic regression, NuSVC, GradientBoostingClassifier, XGBClassifier and MLPClassifier.
-Random undersampling seems to obtain better results.
-Best score is around 0.69 (SVC, RandomUnderSampler)
-Shallow neural networks with dropout and hidden layer achieve similar performance.
-
-Note that all models have a very long training time on the whole subset.
-All features have variance > 0.
-All features I have seen seem to follow a Gaussian-ish distribution.
-By uncommenting the lines in method fit you can visualize boxplots for the 3 classes.
-
-Ideas:
-- eliminate features for which the boxplots of all classes are very similar
-- try more fancy feature selection methods
-- stack best performing classifiers
-- try again with other sampling techniques
-- following Kaggle Kernels step by steps
-- finally, tune hyperparameters
-
-- try deeper neural network (running on a GPU through Google Colab) -> shallow are enough
-- perform outlier detection (with a lot of care) -> apparently not good
-- perform feature selection basing of correlation between features -> PCA does not have major effects
+Neural network fitting a sumbample of the dataset
 '''
 
 import pandas as pd
@@ -64,7 +43,7 @@ from keras.wrappers.scikit_learn import KerasClassifier
 from sklearn.metrics import balanced_accuracy_score
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neural_network import MLPClassifier
-import xgboost as xgb
+from keras import optimizers, regularizers
 class CustomEstimator (BaseEstimator):
 
     def __init__(self, sampler,
@@ -110,20 +89,22 @@ class CustomEstimator (BaseEstimator):
 
 def baseline_model():
     model = Sequential()
-    model.add(Dense(700, input_dim=1000, activation='relu'))
-    model.add(Dense(400, activation='relu'))
+    model.add(Dense(700, input_dim=1000, activation='relu', kernel_regularizer=regularizers.l2(0.02)))
+    model.add(Dense(400, activation='relu', kernel_regularizer=regularizers.l2(0.02)))
     model.add(Dropout(0.5))
     model.add(Dense(3, activation='softmax'))
-    model.compile(loss='categorical_crossentropy', optimizer='adam')
+    opt = optimizers.Adam(lr=0.0002)
+
+    model.compile(loss='categorical_crossentropy', optimizer=opt)
     print(model.summary())
     return model
+
 
 #This bit performs cross validation. Every transformation on data needs to be carried out inside the custom estimator class. The following lines should not be touched
 X_t = pd.read_csv('X_train.csv', ',').iloc[:, 1:].to_numpy()
 y_t = pd.read_csv('y_train.csv', ',').iloc[:, 1].to_numpy()
 X_test = pd.read_csv('X_test.csv', ',').iloc[:, 1:].to_numpy()
-
-model = CustomEstimator(sampler=imblearn.under_sampling.RandomUnderSampler(), model=xgb.XGBClassifier(ax_depth=3, n_estimators=650, learning_rate=0.16, subsample=0.5, colsample_bytree=0.5, verbose=True))#model=LogisticRegression(solver='saga', penalty='l1', C=0.5))#SVC(kernel='rbf', gamma='scale', shrinking=False))#model= KerasClassifier(build_fn=baseline_model, epochs=64, batch_size=256, verbose=1))#
+model = CustomEstimator(sampler=imblearn.under_sampling.RandomUnderSampler(), model= KerasClassifier(build_fn=baseline_model, epochs=10, batch_size=32, verbose=1))#
 cv_results = cross_validate(model, X_t, y_t, scoring='balanced_accuracy', n_jobs=-1, cv=10, verbose=True)
 print('Score of ' + str(model) + ': ')
 print(cv_results['test_score'])
@@ -135,19 +116,3 @@ pred = model.predict(X_test)
 answer = pd.read_csv('X_test.csv', ',')[['id']]
 answer = pd.concat([answer, pd.DataFrame(data=pred, columns=['y'])], axis=1)
 pd.DataFrame(answer).to_csv('result.csv', ',', index=False)
-
-
-#Collection of decent ideas
-classifiers = [
-    LogisticRegression(),
-    NuSVC(probability=True),
-    GradientBoostingClassifier(),
-    MLPClassifier(),
-    XGBClassifier()]
-
-samplers = [imblearn.under_sampling.TomekLinks(ratio='majority', n_jobs=-1),
-            imblearn.combine.SMOTETomek(ratio='auto', n_jobs=-1),
-            imblearn.under_sampling.ClusterCentroids(ratio={1:600}, n_jobs=-1),
-            imblearn.over_sampling.RandomOverSampler(),
-            imblearn.over_sampling.SMOTE(ratio='minority', n_jobs=-1),
-            imblearn.under_sampling.RandomUnderSampler()]
