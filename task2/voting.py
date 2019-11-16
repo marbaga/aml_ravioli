@@ -1,29 +1,3 @@
-'''
-So far I experimented with different classifiers and differend samplers.
-Those delivering better results seem to be logistic regression, NuSVC, GradientBoostingClassifier, XGBClassifier and MLPClassifier.
-Random undersampling seems to obtain better results.
-Best score is around 0.69 (SVC, RandomUnderSampler)
-Shallow neural networks with dropout and hidden layer achieve similar performance.
-
-Note that all models have a very long training time on the whole subset.
-All features have variance > 0.
-All features I have seen seem to follow a Gaussian-ish distribution.
-By uncommenting the lines in method fit you can visualize boxplots for the 3 classes.
-
-Ideas:
-- eliminate features for which the boxplots of all classes are very similar
-- try more fancy feature selection methods
-- try deeper neural network (running on a GPU through Google Colab)
-- stack best performing classifiers
-- try again with other sampling techniques
-- following Kaggle Kernels step by steps
-- finally, tune hyperparameters
-
-
-- perform outlier detection (with a lot of care) -> apparently not good
-- perform feature selection basing of correlation between features -> PCA does not have major effects
-'''
-
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -69,7 +43,7 @@ class CustomEstimator (BaseEstimator):
             sns.boxplot(X_t[np.where(y_t == 2), i], color='pink', ax=ax3)
             plt.show()
             '''
-        print('Final training matrix shape is ' + str(X_t.shape))
+        #print('Final training matrix shape is ' + str(X_t.shape))
         X_t = self.scaler.fit_transform(X_t)
         self.model.fit(X_t, y_t)
         return self
@@ -104,9 +78,9 @@ class CustomNN(BaseEstimator):
             X_t, y_t = self.sampler.fit_sample(X_t, y_t)
         X_t = self.scaler.fit_transform(X_t)
         if self.weight:
-            self.model.fit(X_t, y_t, class_weight=self.class_weight)
+            self.model.fit(X_t, y_t, class_weight=self.class_weight, verbose=0)
         else:
-            self.model.fit(X_t, y_t)
+            self.model.fit(X_t, y_t, verbose=0)
         return self
 
     def predict(self, X):
@@ -128,7 +102,6 @@ def baseline_model_weight():
     model.add(Dropout(0.5))
     model.add(Dense(3, activation='softmax'))
     model.compile(loss='categorical_crossentropy', optimizer=optimizers.Adam(learning_rate=0.0002))
-    print(model.summary())
     return model
 
 def baseline_model_sample():
@@ -138,7 +111,6 @@ def baseline_model_sample():
     model.add(Dropout(0.5))
     model.add(Dense(3, activation='softmax'))
     model.compile(loss='categorical_crossentropy', optimizer=optimizers.Adam(learning_rate=0.0002))
-    print(model.summary())
     return model
 
 
@@ -147,14 +119,20 @@ X_t = pd.read_csv('X_train.csv', ',').iloc[:, 1:].to_numpy()
 y_t = pd.read_csv('y_train.csv', ',').iloc[:, 1].to_numpy()
 X_test = pd.read_csv('X_test.csv', ',').iloc[:, 1:].to_numpy()
 
+###################################################################################
+
+###################################################################################
 
 voters=[]
-for i in range(0,4):
-    voters.append(('weighted_nn' + str(i), CustomNN(model=KerasClassifier(build_fn=baseline_model_weight, epochs=10, batch_size=32, verbose=1), weight=True, class_weight={0:1, 1:0.16, 2:1})))
-    voters.append(('sampled_nn'+str(i), CustomNN(model=KerasClassifier(build_fn=baseline_model_sample, epochs=10, batch_size=32, verbose=1), sample=True)))
-    voters.append(('gradboost'+str(i), CustomEstimator(sampler=imblearn.under_sampling.RandomUnderSampler(), model=xgb.XGBClassifier(ax_depth=3, n_estimators=650, learning_rate=0.16, subsample=0.5, colsample_bytree=0.5, verbose=True))))
+for i in range(0,3):
+    voters.append(('weighted_nn' + str(i), CustomNN(model=KerasClassifier(build_fn=baseline_model_weight, epochs=10, batch_size=32), weight=True, class_weight={0:1, 1:0.16, 2:1})))
+    voters.append(('sampled_nn'+str(i), CustomNN(model=KerasClassifier(build_fn=baseline_model_sample, epochs=8, batch_size=32), sample=True)))
+    voters.append(('gradboost'+str(i), CustomEstimator(sampler=imblearn.under_sampling.RandomUnderSampler(), model=xgb.XGBClassifier(ax_depth=3, n_estimators=600, learning_rate=0.16, subsample=0.5, colsample_bytree=0.5, verbose=False))))
     voters.append(('svc'+str(i), CustomEstimator(sampler=imblearn.under_sampling.RandomUnderSampler(), model=SVC(kernel='rbf', gamma='scale', shrinking=False))))
+    voters.append(('svc2'+str(i), CustomEstimator(sampler=imblearn.under_sampling.RandomUnderSampler(), model=SVC(kernel='rbf', gamma='scale', shrinking=False))))
+
     #voters.append(('logreg'+str(i), CustomEstimator(sampler=imblearn.under_sampling.RandomUnderSampler(), model=LogisticRegression(solver='saga', penalty='l1', C=0.5, max_iter=200, multi_class='auto'))))
+
 '''
 for model in voters:
     cv_results = cross_validate(model[1], X_t, y_t, scoring='balanced_accuracy', n_jobs=-1, cv=10, verbose=True)
@@ -165,14 +143,81 @@ for model in voters:
 '''
 
 model = VotingClassifier(voters)
-cv_results = cross_validate(model, X_t, y_t, scoring='balanced_accuracy', n_jobs=-1, cv=10, verbose=True)
+cv_results = cross_validate(model, X_t, y_t, scoring='balanced_accuracy', cv=10, verbose=True)
 print('Score of ' + str(model) + ': ')
 print(cv_results['test_score'])
 print("Average: " + str(np.average(cv_results['test_score'])))
 print("Variance: " + str(np.var(cv_results['test_score'])))
-
+'''
 model.fit(X_t, y_t)
 pred = model.predict(X_test)
 answer = pd.read_csv('X_test.csv', ',')[['id']]
 answer = pd.concat([answer, pd.DataFrame(data=pred, columns=['y'])], axis=1)
-pd.DataFrame(answer).to_csv('result4.csv', ',', index=False)
+pd.DataFrame(answer).to_csv('result3.csv', ',', index=False)'''
+
+###################################################################################
+
+voters=[]
+for i in range(0,4):
+    voters.append(('weighted_nn' + str(i), CustomNN(model=KerasClassifier(build_fn=baseline_model_weight, epochs=10, batch_size=32), weight=True, class_weight={0:1, 1:0.16, 2:1})))
+    voters.append(('sampled_nn'+str(i), CustomNN(model=KerasClassifier(build_fn=baseline_model_sample, epochs=8, batch_size=32), sample=True)))
+    voters.append(('gradboost'+str(i), CustomEstimator(sampler=imblearn.under_sampling.RandomUnderSampler(), model=xgb.XGBClassifier(ax_depth=3, n_estimators=600, learning_rate=0.16, subsample=0.5, colsample_bytree=0.5, verbose=False))))
+    voters.append(('svc'+str(i), CustomEstimator(sampler=imblearn.under_sampling.RandomUnderSampler(), model=SVC(kernel='rbf', gamma='scale', shrinking=False))))
+
+    #voters.append(('logreg'+str(i), CustomEstimator(sampler=imblearn.under_sampling.RandomUnderSampler(), model=LogisticRegression(solver='saga', penalty='l1', C=0.5, max_iter=200, multi_class='auto'))))
+
+'''
+for model in voters:
+    cv_results = cross_validate(model[1], X_t, y_t, scoring='balanced_accuracy', n_jobs=-1, cv=10, verbose=True)
+    print('Score of ' + str(model) + ': ')
+    print(cv_results['test_score'])
+    print("Average: " + str(np.average(cv_results['test_score'])))
+    print("Variance: " + str(np.var(cv_results['test_score'])))
+'''
+
+model = VotingClassifier(voters)
+cv_results = cross_validate(model, X_t, y_t, scoring='balanced_accuracy', cv=10, verbose=True)
+print('Score of ' + str(model) + ': ')
+print(cv_results['test_score'])
+print("Average: " + str(np.average(cv_results['test_score'])))
+print("Variance: " + str(np.var(cv_results['test_score'])))
+'''
+model.fit(X_t, y_t)
+pred = model.predict(X_test)
+answer = pd.read_csv('X_test.csv', ',')[['id']]
+answer = pd.concat([answer, pd.DataFrame(data=pred, columns=['y'])], axis=1)
+pd.DataFrame(answer).to_csv('result4.csv', ',', index=False)'''
+
+###################################################################################
+
+voters=[]
+for i in range(0,4):
+    voters.append(('weighted_nn' + str(i), CustomNN(model=KerasClassifier(build_fn=baseline_model_weight, epochs=10, batch_size=32), weight=True, class_weight={0:1, 1:0.16, 2:1})))
+    voters.append(('sampled_nn'+str(i), CustomNN(model=KerasClassifier(build_fn=baseline_model_sample, epochs=8, batch_size=32), sample=True)))
+    voters.append(('gradboost'+str(i), CustomEstimator(sampler=imblearn.under_sampling.RandomUnderSampler(), model=xgb.XGBClassifier(ax_depth=3, n_estimators=600, learning_rate=0.16, subsample=0.5, colsample_bytree=0.5, verbose=False))))
+    voters.append(('svc'+str(i), CustomEstimator(sampler=imblearn.under_sampling.RandomUnderSampler(), model=SVC(kernel='rbf', gamma='scale', shrinking=False))))
+    voters.append(('svc2'+str(i), CustomEstimator(sampler=imblearn.under_sampling.RandomUnderSampler(), model=SVC(kernel='rbf', gamma='scale', shrinking=False))))
+
+    #voters.append(('logreg'+str(i), CustomEstimator(sampler=imblearn.under_sampling.RandomUnderSampler(), model=LogisticRegression(solver='saga', penalty='l1', C=0.5, max_iter=200, multi_class='auto'))))
+
+'''
+for model in voters:
+    cv_results = cross_validate(model[1], X_t, y_t, scoring='balanced_accuracy', n_jobs=-1, cv=10, verbose=True)
+    print('Score of ' + str(model) + ': ')
+    print(cv_results['test_score'])
+    print("Average: " + str(np.average(cv_results['test_score'])))
+    print("Variance: " + str(np.var(cv_results['test_score'])))
+'''
+
+model = VotingClassifier(voters)
+cv_results = cross_validate(model, X_t, y_t, scoring='balanced_accuracy', cv=10, verbose=True)
+print('Score of ' + str(model) + ': ')
+print(cv_results['test_score'])
+print("Average: " + str(np.average(cv_results['test_score'])))
+print("Variance: " + str(np.var(cv_results['test_score'])))
+'''
+model.fit(X_t, y_t)
+pred = model.predict(X_test)
+answer = pd.read_csv('X_test.csv', ',')[['id']]
+answer = pd.concat([answer, pd.DataFrame(data=pred, columns=['y'])], axis=1)
+pd.DataFrame(answer).to_csv('result5.csv', ',', index=False)'''
