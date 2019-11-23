@@ -89,9 +89,9 @@ class CustomEstimator (BaseEstimator):
 
 def baseline_model():
     model = Sequential()
-    model.add(Dense(700, input_dim=1000, activation='relu', kernel_regularizer=regularizers.l2(0.01)))
-    model.add(Dense(400, activation='relu', kernel_regularizer=regularizers.l2(0.01)))
-    model.add(Dropout(0.5))
+    model.add(Dense(100, input_dim=1000, activation='relu'))#, kernel_regularizer=regularizers.l2(0.01)))
+    #model.add(Dense(400, activation='relu', kernel_regularizer=regularizers.l2(0.01)))
+    model.add(Dropout(0.9))
     model.add(Dense(3, activation='softmax'))
     opt = optimizers.Adam(lr=0.0002)
 

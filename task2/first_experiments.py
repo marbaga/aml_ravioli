@@ -29,7 +29,7 @@ import matplotlib.pyplot as plt
 import xgboost as xgb
 from sklearn.impute import SimpleImputer
 from sklearn.neighbors import LocalOutlierFactor
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, RobustScaler
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, GradientBoostingClassifier
 from sklearn.model_selection import cross_validate
 from scipy.stats import shapiro, boxcox
@@ -65,6 +65,8 @@ from sklearn.metrics import balanced_accuracy_score
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neural_network import MLPClassifier
 import xgboost as xgb
+from keras import optimizers, regularizers
+
 class CustomEstimator (BaseEstimator):
 
     def __init__(self, sampler,
@@ -79,7 +81,7 @@ class CustomEstimator (BaseEstimator):
 
         X_t = X.copy()
         y_t = y.copy()
-        X_t, y_t = self.sampler.fit_sample(X_t, y_t)
+        #X_t, y_t = self.sampler.fit_sample(X_t, y_t)
 
         #self.feature_selector = PCA(n_components=500)
         #self.feature_selector.fit(X_t)
@@ -95,7 +97,7 @@ class CustomEstimator (BaseEstimator):
             '''
         print('Final training matrix shape is ' + str(X_t.shape))
         X_t = self.scaler.fit_transform(X_t)
-        self.model.fit(X_t, y_t)
+        self.model.fit(X_t, y_t, class_weight={0:1, 1:0.16, 2:1})
 
         return self
 
@@ -110,11 +112,11 @@ class CustomEstimator (BaseEstimator):
 
 def baseline_model():
     model = Sequential()
-    model.add(Dense(700, input_dim=1000, activation='relu'))
-    model.add(Dense(400, activation='relu'))
+    model.add(Dense(700, input_dim=1000, activation='relu', kernel_regularizer=regularizers.l2(0.02)))
+    model.add(Dense(400, activation='relu', kernel_regularizer=regularizers.l2(0.02)))
     model.add(Dropout(0.5))
     model.add(Dense(3, activation='softmax'))
-    model.compile(loss='categorical_crossentropy', optimizer='adam')
+    model.compile(loss='categorical_crossentropy', optimizer=optimizers.Adam(learning_rate=0.0002))
     print(model.summary())
     return model
 
@@ -123,19 +125,19 @@ X_t = pd.read_csv('X_train.csv', ',').iloc[:, 1:].to_numpy()
 y_t = pd.read_csv('y_train.csv', ',').iloc[:, 1].to_numpy()
 X_test = pd.read_csv('X_test.csv', ',').iloc[:, 1:].to_numpy()
 
-model = CustomEstimator(sampler=imblearn.under_sampling.RandomUnderSampler(), model=xgb.XGBClassifier(ax_depth=3, n_estimators=650, learning_rate=0.16, subsample=0.5, colsample_bytree=0.5, verbose=True))#model=LogisticRegression(solver='saga', penalty='l1', C=0.5))#SVC(kernel='rbf', gamma='scale', shrinking=False))#model= KerasClassifier(build_fn=baseline_model, epochs=64, batch_size=256, verbose=1))#
+model = CustomEstimator(sampler=imblearn.under_sampling.RandomUnderSampler(), model= KerasClassifier(build_fn=baseline_model, epochs=10, batch_size=32, verbose=1))#model=LogisticRegression(solver='saga', penalty='l1', C=0.5))#SVC(kernel='rbf', gamma='scale', shrinking=False))#model= KerasClassifier(build_fn=baseline_model, epochs=64, batch_size=256, verbose=1))#
 cv_results = cross_validate(model, X_t, y_t, scoring='balanced_accuracy', n_jobs=-1, cv=10, verbose=True)
 print('Score of ' + str(model) + ': ')
 print(cv_results['test_score'])
 print("Average: " + str(np.average(cv_results['test_score'])))
 print("Variance: " + str(np.var(cv_results['test_score'])))
-
+'''
 model.fit(X_t, y_t)
 pred = model.predict(X_test)
 answer = pd.read_csv('X_test.csv', ',')[['id']]
 answer = pd.concat([answer, pd.DataFrame(data=pred, columns=['y'])], axis=1)
 pd.DataFrame(answer).to_csv('result.csv', ',', index=False)
-
+'''
 
 #Collection of decent ideas
 classifiers = [

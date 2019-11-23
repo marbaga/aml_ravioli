@@ -52,35 +52,9 @@ from keras.initializers import Constant
 from keras import regularizers
 
 from keras import backend as K
-
-
-def weighted_categorical_crossentropy(weights):
-    """
-    A weighted version of keras.objectives.categorical_crossentropy
-
-    Variables:
-        weights: numpy array of shape (C,) where C is the number of classes
-
-    Usage:
-        weights = np.array([0.5,2,10]) # Class one at 0.5, class 2 twice the normal weights, class 3 10x.
-        loss = weighted_categorical_crossentropy(weights)
-        model.compile(loss=loss,optimizer='adam')
-    """
-
-    weights = K.variable(weights)
-
-    def loss(y_true, y_pred):
-        # scale predictions so that the class probas of each sample sum to 1
-        y_pred /= K.sum(y_pred, axis=-1, keepdims=True)
-        # clip to prevent NaN's and Inf's
-        y_pred = K.clip(y_pred, K.epsilon(), 1 - K.epsilon())
-        # calc
-        loss = y_true * K.log(y_pred) * weights
-        loss = -K.sum(loss, -1)
-        return loss
-
-    return loss
-
+from keras.layers.normalization import BatchNormalization
+from keras.layers import Activation
+import keras.backend as K
 
 class CustomEstimator (BaseEstimator):
 
@@ -96,7 +70,7 @@ class CustomEstimator (BaseEstimator):
 
         X_t = X.copy()
         y_t = y.copy()
-        X_t, y_t = self.sampler.fit_sample(X_t, y_t)
+        #X_t, y_t = self.sampler.fit_sample(X_t, y_t)
 
         #self.feature_selector = PCA(n_components=500)
         #self.feature_selector.fit(X_t)
@@ -112,7 +86,7 @@ class CustomEstimator (BaseEstimator):
             '''
         print('Final training matrix shape is ' + str(X_t.shape))
         X_t = self.scaler.fit_transform(X_t)
-        self.model.fit(X_t, y_t)
+        self.model.fit(X_t, y_t, class_weight={0:1, 1:0.16, 2:1})
 
         return self
 
@@ -127,16 +101,13 @@ class CustomEstimator (BaseEstimator):
 
 def baseline_model():
     model = Sequential()
-    model.add(Dense(700, input_dim=1000, activation='relu', kernel_regularizer=regularizers.l2(0.02)))
-    model.add(Dense(400, activation='relu', kernel_regularizer=regularizers.l2(0.02)))
-    model.add(Dropout(0.5))
-    #model.add(Dense(3, activation='softmax', bias_initializer=Constant([-0.9, -0.12, -0.9])))
+    model.add(Dense(50, input_dim=1000))
+    #model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    #model.add(Dropout(0.5))
+    #model.add(Dense(400, kernel_regularizer=regularizers.l2(0.0)))
     model.add(Dense(3, activation='softmax'))
     opt = optimizers.Adam(lr=0.0002)
-    #opt = optimizers.SGD(nesterov=True, learning_rate=0.005)
-    #opt = optimizers.Adadelta(learning_rate=1, rho=0.1)
-    #opt = optimizers.Adagrad(learning_rate=0.001)
-    #opt = optimizers.RMSprop(learning_rate=0.0001)
 
     model.compile(loss='categorical_crossentropy', optimizer=opt)
     print(model.summary())
@@ -178,7 +149,7 @@ X_test = X_test[:, :X_test.shape[1]-1]
 X_train_copy = X_train
 
 #sampler = imblearn.over_sampling.SMOTE()
-sampler = imblearn.under_sampling.RandomUnderSampler()
+sampler = imblearn.over_sampling.SMOTE()
 X_train, y_train = sampler.fit_sample(X_train, y_train)
 
 scaler = StandardScaler()
@@ -192,7 +163,7 @@ model = baseline_model()
 baseline_history = model.fit(
     X_train,
     y_train,
-    batch_size=32,
+    batch_size=64,
     epochs=10,
     callbacks = [EarlyStopping(monitor='val_loss', min_delta=0.001, patience=32)],
     validation_data=(X_val, y_val))
