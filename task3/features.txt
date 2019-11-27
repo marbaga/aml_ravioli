@@ -1,0 +1,26 @@
+Features:
+
+1x number of templates
+3x mean, median, std of RRI length
+5x mean, median, std, min, max HR
+4x pNN20, pNN50, NN20, NN50
+2x RMSSD, SDSD
+3x median, mean, std on RRI velocity
+3x median, mean, std on RRI acceleration
+
+6x max, min, mean, std, skew, kurtosis on the whole signal
+1x sample entropy
+1x shannon entropy on RR lengths
+1x tsipoutas index incidence??????????????????????????????????????????????????????????????????
+
+8x avg of (max, min, mean, var, median, std, skew, kurt of amplitude in every template)
+
+37
+
+24x wavelet lv4 db4: for each coefficient list median, mean, std, entropy, log entropy, percentiles
+
+29x fourier?? power spectral density at different bands?
+- fourier integral 0-0.15, 0.15-0.4, 0.04-0.15, 0.0033-0.04
+
+- mean, median and std of PQRST waves amplitude and times
+- same on PR, QS, RT intervals and P wave
