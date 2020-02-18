@@ -8,9 +8,7 @@ from sklearn.feature_selection import RFE
 import sklearn.preprocessing as preprocessing
 from sklearn.ensemble import GradientBoostingRegressor
 
-# It's a collage from previous code, with some new things. The X_test is
-# modified together with X_train, otherwise I didn't know ho to distinguish features
-# in the correlation matrix, that's why you will sometimes find it with apparently no meaning
+#Performs manual feature selection and prediction
 
 #suppress FutureWarnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -91,51 +89,6 @@ X_test = test_data.iloc[:, :data.shape[1]-1]
 print('Shape of the cleaned matrix after correlation selection: ' + str(X_t.shape))
 print('Shape of the test cleaned matrix after correlation selection: ' + str(X_t.shape))
 # end of feature selection from correlation matrix
-
-'''# RFECV
-#model = Ridge()
-model = GradientBoostingRegressor(learning_rate=0.01, max_depth=4, n_estimators=2500, subsample=0.8, min_samples_split=2, min_samples_leaf=1, max_features='sqrt',random_state=10)
-selector = RFECV(estimator=model, step=10, min_features_to_select=40, cv=10)
-selector = selector.fit(X_t, y_t)
-support = selector.get_support()
-
-
-# Trying to select a good number of features to approximate 200 total features
-v = []
-for i in range(0,8):
-    v.append(0)
-i=0
-while i < selector.ranking_.size:
-    for j in range(0,8):
-        if selector.ranking_[i] == j:
-            v[j] = v[j]+1
-    i = i+1
-print(v)
-num_features = 0
-n_to_stop = 0
-i = 0
-while num_features < 95:
-    num_features = num_features + v[i]
-    n_to_stop = n_to_stop+1
-    i = i+1
-
-# collects the features with good enough ranking
-useful_features = []
-i=0
-while i < selector.ranking_.size:
-    if selector.ranking_[i] < n_to_stop:
-        useful_features.append(i)
-    i = i+1
-
-useful_features = np.array(useful_features)
-
-X_t = X_t.iloc[:, support]
-X_test = X_test.iloc[:, support]
-
-print(X_t.shape)
-print(X_test.shape)
-#end feature selection with rfecv
-'''
 
 # RFE feature selection with no cross validation
 model = GradientBoostingRegressor(learning_rate=0.01, max_depth=4, n_estimators=2500, subsample=0.8, min_samples_split=2, min_samples_leaf=1, max_features='sqrt',random_state=10)

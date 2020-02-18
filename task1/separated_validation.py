@@ -17,6 +17,8 @@ from sklearn.model_selection import GridSearchCV
 import xgboost as xgb
 import random
 
+#Experimentint feature selection by correlation criteria
+
 import warnings
 
 def select_features_by_corr(max_corr, X, y):
@@ -141,76 +143,3 @@ print("Validation score: ")
 plt.scatter(predictions, y_val)
 plt.show()
 print(metrics.r2_score(y_val, predictions))
-
-'''
-ind = []
-for i in range(0, X_t.shape[1]):
-    print(i)
-    val = X_t[:, i]
-    n, bins, a = plt.hist(X_t[:, i])
-    if(2*n[9]<n[5]):
-        plt.clf()
-        plt.scatter(X_t[:, i], y_t)
-        #plt.show()
-        ind.append(i)
-    plt.clf()
-pd.DataFrame(ind).to_csv('not_uniform_features.csv')
-
-
-added_features = []
-found = True
-while len(to_keep)<200 or found:
-    found = False
-    xx = X_train.copy()
-    yy = y_train.copy()
-
-    xx = xx.filter(to_keep)
-    scaler = StandardScaler()
-    xx = pd.DataFrame(scaler.fit_transform(xx))
-    m.fit(xx, yy.to_numpy().ravel())
-
-    xv = X_val.copy()
-    filler = SimpleImputer(missing_values=np.nan, strategy='median')
-    xv = filler.fit_transform(xv)
-    xv = pd.DataFrame(xv)
-    xv = xv.filter(ind)
-    sel = VarianceThreshold()
-    xv = pd.DataFrame(sel.fit_transform(xv))
-    xv = xv.filter(to_keep)
-    print("Baseline shape is " + str(xv.shape))
-    xv = pd.DataFrame(scaler.transform(xv))
-
-    pred = m.predict(xv)
-    baseline = metrics.r2_score(y_val, pred)
-    print("Baseline score is " + str(baseline))
-
-    lis = list(range(X_train.shape[1]))
-    random.shuffle(lis)
-    for i in lis:
-        if not i in to_keep:
-            print("Checking feature " + str(i) + ". Added features: " + str(added_features))
-            newset = np.append(to_keep.copy(), i)
-            xx = X_train.copy().filter(newset)
-            scaler = StandardScaler()
-            xx = pd.DataFrame(scaler.fit_transform(xx))
-            m.fit(xx, yy.to_numpy().ravel())
-
-            xv = X_val.copy()
-            filler = SimpleImputer(missing_values=np.nan, strategy='median')
-            xv = filler.fit_transform(xv)
-            xv = pd.DataFrame(xv)
-            xv = xv.filter(ind)
-            sel = VarianceThreshold()
-            xv = pd.DataFrame(sel.fit_transform(xv))
-            xv = xv.filter(newset)
-            xv = pd.DataFrame(scaler.transform(xv))
-
-            pred = m.predict(xv)
-            new_result = metrics.r2_score(y_val, pred)
-            print("Latest result: " + str(new_result) + ", number of features is " + str(len(newset)))
-            if new_result > baseline*1.002:
-                to_keep = np.append(to_keep, i)
-                added_features = np.append(added_features, i)
-                found = True
-                break
-'''

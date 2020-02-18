@@ -13,6 +13,7 @@ from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn import ensemble
 from sklearn.base import BaseEstimator
 
+#Experiment with Gradient Boosting and RFE
 
 class CustomEstimator (BaseEstimator):
 
@@ -165,9 +166,6 @@ class CustomEstimator (BaseEstimator):
                 to_keep.append(i)
 
         return to_keep
-
-#might set n_estimators to 3000
-#also touch alpha and tol
 
 X_t = pd.read_csv('task1/X_train.csv', ',').iloc[:, 1:].to_numpy()
 y_t = pd.read_csv('task1/y_train.csv', ',').iloc[:, 1].to_numpy()

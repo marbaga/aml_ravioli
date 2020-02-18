@@ -1,14 +1,10 @@
-#CLASS TO
-
 import pandas as pd
 import numpy as np
-
 from sklearn.model_selection import GridSearchCV, cross_val_score
 from xgboost import XGBRegressor
 
-# Contains a function to set parameters of the RandomForestRegressor with cv.
-# Returns a model (or if you want a score).
-# Uncomment and change code to make it useful again
+# Function finding best parameters through CV.
+# Returns a model with selected parameters.
 
 
 def xbr_model(X,y):
@@ -31,14 +27,11 @@ def xbr_model(X,y):
 
     print('Best parameters: ')
     print(best_params)
-    '''
-    print(best_params["max_depth"])
-    print(best_params["n_estimators"])'''
 
     rfr = XGBRegressor(learning_rate=best_params['learning_rate'],
                        max_depth=best_params['max_depth'], subsample=best_params['subsample'],
                        n_estimators=best_params['n_estimators'], colsample_bytree=best_params['colsample_bytree'],
-                        alpha=best_params['alpha'])  # Perform K-Fold CV
+                        alpha=best_params['alpha'])
 
     #scores = cross_val_score(rfr, X, y, cv=10, scoring='r2')
 

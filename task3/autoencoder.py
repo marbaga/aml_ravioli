@@ -6,6 +6,7 @@ from keras.models import Model
 import matplotlib.pyplot as plt
 from keras.callbacks import EarlyStopping
 
+#Experimenting with autoencoders to perform automatic feature extraction
 
 X_t = pd.read_csv('X_train.csv', ',').iloc[1:].to_numpy()
 

@@ -13,6 +13,8 @@ from sklearn.svm import OneClassSVM
 
 from sklearn.feature_selection import VarianceThreshold
 
+#Transforms the dataset by removing outliers
+
 X_t = pd.read_csv('task1/X_train.csv', ',')
 y_t = pd.read_csv('task1/y_train.csv', ',')
 
@@ -60,12 +62,3 @@ print(str(outliers_count) + ' samples are considered outliers (~'+ str(int((outl
 
 X_t = pd.read_csv('task1/results/X_inliners.csv', ',')
 y_t = pd.read_csv('task1/results/y_inliners.csv', ',')
-
-#X_t = X_t.drop('0', axis=1)
-#
-#scaler = StandardScaler()
-#scaler.fit(X_t)
-#
-#X_t = scaler.transform(X_t)
-#
-#pd.DataFrame(X_t).to_csv('task1/results/X_normalized.csv', ',', index=False)

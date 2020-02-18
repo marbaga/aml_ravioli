@@ -1,7 +1,5 @@
-#this script performs feature selection based on covariance
-#results with current tuning scores around 0.49
-#THIS FEATURE SELECTION IS OUTCLASSED BY LIBRARY METHODS
-
+#This script performs feature selection based on covariance
+#This approached did not perform well
 import pandas as pd
 import numpy as np
 import sklearn.preprocessing as preprocessing
@@ -79,7 +77,6 @@ X_t = pd.read_csv('task1/results/X_inliners.csv', ',').iloc[:, 1:]
 scaler = preprocessing.StandardScaler()
 X_t = pd.DataFrame(scaler.fit_transform(X_t))
 print(X_t)
-
 y_t = y
 
 #play around with a linear model to find best hyperparameters
@@ -93,8 +90,6 @@ scaler = preprocessing.StandardScaler()
 X_t = scaler.fit_transform(data)
 print(X_t)
 
-#ElasticNetCV performs automatic hyperparameter search. Lasso models works a little better.
-#we should try different linear models
 model = linear_model.RidgeCV(cv=5)
 model.fit(X_t, y_t.ravel())
 print(model.score(X_t, y_t))

@@ -113,12 +113,3 @@ test_pred = model.predict(X_test_manual_extraction)
 answer = pd.read_csv('X_test.csv', ',')[['id']]
 answer = pd.concat([answer, pd.DataFrame(data=test_pred, columns=['y'])], axis=1)
 pd.DataFrame(answer).to_csv('result_xgb.csv', ',', index=False)
-
-#xgboost seems to work well with sampling, we need to figure out which kind. Other models work better without
-#try removing outliers, maybe
-
-#FOR NN, TAKE A TEST SET AND USE THE MODEL WITH THE BEST TEST SCORE TO CLASSIFY
-
-#ideas:
-#extract features from each heartbeat, put them in a row, for shorter sequences copy the row many times -> then convolution OR do not bother having the same length and use rnn or hmm
-#try convolutional autoencoders

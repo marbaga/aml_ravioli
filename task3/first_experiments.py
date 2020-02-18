@@ -17,7 +17,7 @@ from keras.layers import Conv1D, Dropout, BatchNormalization, MaxPool1D
 import sklearn.utils
 from scipy import stats
 
-
+#Experimenting with a NN and no feature extraction
 
 class CustomEstimator (BaseEstimator):
 
